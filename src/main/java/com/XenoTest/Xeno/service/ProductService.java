@@ -1,44 +1,25 @@
 package com.XenoTest.Xeno.service;
 
-
 import com.XenoTest.Xeno.entity.Product;
+import com.XenoTest.Xeno.repository.ProductRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
 
 @Service
 public class ProductService {
 
-    private final Map<Long, Product> products = new HashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+    private final ProductRepository productRepository;
 
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
-    public Product addProduct(Product product) {
-        long id = idGenerator.getAndIncrement();
-        product.setId(id);
-        products.put(id, product);
-        return product;
+    public Product saveProduct(Product product) {
+        return productRepository.save(product);
     }
 
     public List<Product> getProductsByTenant(Long tenantId) {
-        List<Product> list = new ArrayList<>();
-        for (Product p : products.values()) {
-            if (p.getTenantId() != null && p.getTenantId().equals(tenantId)) {
-                list.add(p);
-            }
-        }
-        return list;
+        return productRepository.findByTenantId(tenantId);
     }
-
-    public Optional<Product> getProduct(Long id, Long tenantId) {
-        Product p = products.get(id);
-        if (p != null && p.getTenantId().equals(tenantId)) {
-            return Optional.of(p);
-        }
-        return Optional.empty();
-    }
-
-
-
 }

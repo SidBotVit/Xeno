@@ -1,30 +1,30 @@
 package com.XenoTest.Xeno.service;
 
-
 import com.XenoTest.Xeno.entity.Tenant;
+import com.XenoTest.Xeno.repository.TenantRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TenantService {
-    private final Map<Long, Tenant> tenants = new HashMap<>();
-    private final AtomicLong idGenerator = new AtomicLong(1);
+
+    private final TenantRepository tenantRepository;
+
+    public TenantService(TenantRepository tenantRepository) {
+        this.tenantRepository = tenantRepository;
+    }
 
     public Tenant createTenant(Tenant tenant) {
-        long id = idGenerator.getAndIncrement();
-        tenant.setId(id);
-        tenants.put(id, tenant);
-        return tenant;
+        return tenantRepository.save(tenant);
     }
 
     public List<Tenant> getAllTenants() {
-        return new ArrayList<>(tenants.values());
+        return tenantRepository.findAll();
     }
 
     public Optional<Tenant> getTenantById(Long id) {
-        return Optional.ofNullable(tenants.get(id));
+        return tenantRepository.findById(id);
     }
-
 }

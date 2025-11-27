@@ -1,32 +1,25 @@
 package com.XenoTest.Xeno.service;
 
-
 import com.XenoTest.Xeno.entity.Order;
+import com.XenoTest.Xeno.repository.OrderRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.List;
 
 @Service
 public class OrderService {
 
-        private final Map<Long, Order> orders = new HashMap<>();
-        private final AtomicLong idGenerator = new AtomicLong(1);
+    private final OrderRepository repo;
 
-        public Order addOrder(Order order) {
-            order.setId(idGenerator.getAndIncrement());
-            orders.put(order.getId(), order);
-            return order;
-        }
+    public OrderService(OrderRepository repo) {
+        this.repo = repo;
+    }
 
-        public List<Order> getOrdersForTenant(Long tenantId) {
-            List<Order> list = new ArrayList<>();
-            for (Order o : orders.values()) {
-                if (o.getTenantId().equals(tenantId)) {
-                    list.add(o);
-                }
-            }
-            return list;
-        }
+    public Order addOrder(Order order) {
+        return repo.save(order);
+    }
+
+    public List<Order> getOrdersForTenant(Long tenantId) {
+        return repo.findByTenantId(tenantId);
+    }
 }

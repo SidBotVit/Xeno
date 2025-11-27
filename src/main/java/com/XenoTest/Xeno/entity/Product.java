@@ -2,8 +2,6 @@ package com.XenoTest.Xeno.entity;
 
 import jakarta.persistence.*;
 
-import java.math.BigDecimal;
-
 @Entity
 @Table(name = "products")
 public class Product {
@@ -12,29 +10,31 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long tenantId;
-
+    private String shopifyProductId;  // product id returned by Shopify
     private String title;
+    private String description;
+    private String imageUrl;
 
-    private String shopifyProductId;
-
-    private BigDecimal price;
+    private Long tenantId; // link product to tenant
 
     public Product() {}
 
-    // getters and setters
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
-    public Long getTenantId() { return tenantId; }
-    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
 
     public String getShopifyProductId() { return shopifyProductId; }
     public void setShopifyProductId(String shopifyProductId) { this.shopifyProductId = shopifyProductId; }
 
-    public BigDecimal getPrice() { return price; }
-    public void setPrice(BigDecimal price) { this.price = price; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
 }
