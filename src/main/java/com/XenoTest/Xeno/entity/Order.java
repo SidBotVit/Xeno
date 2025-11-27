@@ -1,10 +1,13 @@
 package com.XenoTest.Xeno.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
 @Entity
 @Table(name = "orders")
 public class Order {
@@ -15,33 +18,26 @@ public class Order {
 
     private Long tenantId;
 
-    private String shopifyOrderId;
+    @Column(nullable = false, unique = false)
+    private Long shopifyOrderId;
 
-    private BigDecimal totalAmount;
+    private String name; // Shopify order name => "#1001"
+    private String email;
+
+    private String financialStatus;  // paid / pending / refunded
+    private String fulfillmentStatus; // fulfilled / unfulfilled
+    private Double totalPrice;
+
+    private String currency;
 
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    @ElementCollection
-    private List<String> productIds;
+    private String customerFirstName;
+    private String customerLastName;
 
-    public Order() {}
+    private String orderStatusUrl; // Shopify order status page
 
-    // getters setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public Long getTenantId() { return tenantId; }
-    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
-
-    public String getShopifyOrderId() { return shopifyOrderId; }
-    public void setShopifyOrderId(String shopifyOrderId) { this.shopifyOrderId = shopifyOrderId; }
-
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
-
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
-    public List<String> getProductIds() { return productIds; }
-    public void setProductIds(List<String> productIds) { this.productIds = productIds; }
+    // ---------- GETTERS & SETTERS ----------
+    // (Generate using IDE)
 }

@@ -1,28 +1,23 @@
 package com.XenoTest.Xeno.controller;
 
 import com.XenoTest.Xeno.entity.Product;
-import com.XenoTest.Xeno.service.ProductService;
+import com.XenoTest.Xeno.repository.ProductRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/products")
 public class ProductController {
 
-    private final ProductService productService;
+    private final ProductRepository productRepository;
 
-    public ProductController(ProductService productService) {
-        this.productService = productService;
+    public ProductController(ProductRepository productRepository) {
+        this.productRepository = productRepository;
     }
 
-    @PostMapping
-    public Product saveProduct(@RequestBody Product product) {
-        return productService.saveProduct(product);
-    }
-
-    @GetMapping("/{tenantId}")
-    public List<Product> getProducts(@PathVariable Long tenantId) {
-        return productService.getProductsByTenant(tenantId);
+    @GetMapping("/db")
+    public List<Product> getProductsFromDb(@RequestParam Long tenantId) {
+        return productRepository.findByTenantId(tenantId);
     }
 }

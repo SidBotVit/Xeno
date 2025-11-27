@@ -2,53 +2,59 @@ package com.XenoTest.Xeno.shopify;
 
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
 import java.util.Collections;
 
 @Service
 public class ShopifyClient {
 
     private final RestTemplate restTemplate;
+
     private static final String API_VERSION = "2022-10";
 
     public ShopifyClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
     }
 
-    // 🔥 Generic method to call Shopify API
-    private ResponseEntity<String> callShopifyAPI(String shopDomain, String token, String endpoint) {
+    // ------------------------
+    // GET PRODUCTS
+    // ------------------------
+    public ResponseEntity<String> getProducts(String shopDomain, String token) {
 
-        String url = "https://" + shopDomain + "/admin/api/" + API_VERSION + "/" + endpoint;
+        String url = "https://" + shopDomain + "/admin/api/" + API_VERSION + "/products.json";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Shopify-Access-Token", token);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        try {
-            return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-        } catch (HttpClientErrorException e) {
-            System.out.println("🔥 Shopify API Error (" + endpoint + "): " + e.getStatusCode());
-            System.out.println(e.getResponseBodyAsString());
-            throw e;
-        }
+        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    // 🔵 Get all products
-    public ResponseEntity<String> getProducts(String shopDomain, String token) {
-        return callShopifyAPI(shopDomain, token, "products.json");
-    }
-
-    // 🟢 Get all orders
+    // ------------------------
+    // GET ORDERS
+    // ------------------------
     public ResponseEntity<String> getOrders(String shopDomain, String token) {
-        return callShopifyAPI(shopDomain, token, "orders.json");
+
+        String url = "https://" + shopDomain + "/admin/api/" + API_VERSION + "/orders.json";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Shopify-Access-Token", token);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 
-    // 🟡 Get all customers
+    // ------------------------
+    // GET CUSTOMERS
+    // ------------------------
     public ResponseEntity<String> getCustomers(String shopDomain, String token) {
-        return callShopifyAPI(shopDomain, token, "customers.json");
+
+        String url = "https://" + shopDomain + "/admin/api/" + API_VERSION + "/customers.json";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Shopify-Access-Token", token);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
     }
 }

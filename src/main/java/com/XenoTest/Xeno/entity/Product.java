@@ -1,8 +1,14 @@
 package com.XenoTest.Xeno.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "products")
 public class Product {
 
@@ -10,31 +16,21 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String shopifyProductId;  // product id returned by Shopify
+    private Long shopifyProductId;
+
     private String title;
     private String description;
+    private String vendor;
+    private String productType;
+
+    private String status;
+    private String handle;
     private String imageUrl;
 
-    private Long tenantId; // link product to tenant
+    private Double price;
 
-    public Product() {}
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    // Getters & Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getShopifyProductId() { return shopifyProductId; }
-    public void setShopifyProductId(String shopifyProductId) { this.shopifyProductId = shopifyProductId; }
-
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
-
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-
-    public Long getTenantId() { return tenantId; }
-    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
+    private Long tenantId; // <-- important for multitenant
 }
