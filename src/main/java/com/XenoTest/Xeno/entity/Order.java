@@ -1,74 +1,47 @@
 package com.XenoTest.Xeno.entity;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Entity
+@Table(name = "orders")
 public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long tenantId;             // which store
-    private String shopifyOrderId;     // Shopify order id
+
+    private Long tenantId;
+
+    private String shopifyOrderId;
+
     private BigDecimal totalAmount;
+
     private LocalDateTime createdAt;
+
+    @ElementCollection
     private List<String> productIds;
 
-    public Order(Long id, Long tenantId, String shopifyOrderId, BigDecimal totalAmount, LocalDateTime createdAt, List<String> productIds) {
-        this.id = id;
-        this.tenantId = tenantId;
-        this.shopifyOrderId = shopifyOrderId;
-        this.totalAmount = totalAmount;
-        this.createdAt = createdAt;
-        this.productIds = productIds;
-    }
+    public Order() {}
 
-    public Order() {
-    }
+    // getters setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getTenantId() { return tenantId; }
+    public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getShopifyOrderId() { return shopifyOrderId; }
+    public void setShopifyOrderId(String shopifyOrderId) { this.shopifyOrderId = shopifyOrderId; }
 
-    public Long getTenantId() {
-        return tenantId;
-    }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
-    public void setTenantId(Long tenantId) {
-        this.tenantId = tenantId;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getShopifyOrderId() {
-        return shopifyOrderId;
-    }
-
-    public void setShopifyOrderId(String shopifyOrderId) {
-        this.shopifyOrderId = shopifyOrderId;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public List<String> getProductIds() {
-        return productIds;
-    }
-
-    public void setProductIds(List<String> productIds) {
-        this.productIds = productIds;
-    }
+    public List<String> getProductIds() { return productIds; }
+    public void setProductIds(List<String> productIds) { this.productIds = productIds; }
 }
