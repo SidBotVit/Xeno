@@ -19,5 +19,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             String title,
             Pageable pageable
     );
+
     Optional<Product> findByShopifyProductIdAndTenantId(Long shopifyProductId, Long tenantId);
 }

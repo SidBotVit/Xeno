@@ -27,6 +27,9 @@ public class CustomerSyncService {
         this.tenantRepo = tenantRepo;
     }
 
+    // -----------------------------------------
+    // MAIN BULK SYNC (Scheduler)
+    // -----------------------------------------
     @Transactional
     public String syncCustomers(Long tenantId) throws Exception {
 
@@ -45,43 +48,67 @@ public class CustomerSyncService {
         }
 
         for (JsonNode c : customersNode) {
-
-            Long shopifyCustomerId = safeLong(c, "id");
-
-            Customer customer = customerRepo
-                    .findByShopifyCustomerIdAndTenantId(shopifyCustomerId, tenantId)
-                    .orElse(new Customer());
-
-            customer.setTenantId(tenantId);
-            customer.setShopifyCustomerId(shopifyCustomerId);
-
-            customer.setFirstName(safeText(c, "first_name"));
-            customer.setLastName(safeText(c, "last_name"));
-            customer.setEmail(safeText(c, "email"));
-            customer.setPhone(safeText(c, "phone"));
-
-            // verified_email is NOT NULL in DB → must always set
-            customer.setVerifiedEmail(safeBoolean(c, "verified_email"));
-
-            JsonNode defaultAddress = c.get("default_address");
-            if (defaultAddress != null && !defaultAddress.isNull()) {
-                customer.setCity(safeText(defaultAddress, "city"));
-                customer.setCountry(safeText(defaultAddress, "country"));
-                customer.setState(safeText(defaultAddress, "province"));
-            } else {
-                customer.setCity("");
-                customer.setCountry("");
-                customer.setState("");
-            }
-
-            customerRepo.save(customer);
+            saveCustomer(tenantId, c);
         }
 
         return "Customers synced successfully for tenant = " + tenantId;
     }
 
-    // -------- SAFE FIELD HELPERS --------
+    // -----------------------------------------
+    // WEBHOOK: SYNC SINGLE CUSTOMER
+    // -----------------------------------------
+    public void syncSingleCustomer(String shopDomain, JsonNode json) {
 
+        Tenant tenant = tenantRepo.findByShopDomain(shopDomain);
+
+        if (tenant == null) {
+            System.out.println("❌ Unknown tenant for shop: " + shopDomain);
+            return;
+        }
+
+        saveCustomer(tenant.getId(), json);
+
+        System.out.println("✅ Single customer synced: " + json.get("id").asLong());
+    }
+
+    // -----------------------------------------
+    // COMMON SAVE LOGIC (Used by both bulk + webhook)
+    // -----------------------------------------
+    private void saveCustomer(Long tenantId, JsonNode c) {
+
+        Long shopifyCustomerId = safeLong(c, "id");
+
+        Customer customer = customerRepo
+                .findByShopifyCustomerIdAndTenantId(shopifyCustomerId, tenantId)
+                .orElse(new Customer());
+
+        customer.setTenantId(tenantId);
+        customer.setShopifyCustomerId(shopifyCustomerId);
+
+        customer.setFirstName(safeText(c, "first_name"));
+        customer.setLastName(safeText(c, "last_name"));
+        customer.setEmail(safeText(c, "email"));
+        customer.setPhone(safeText(c, "phone"));
+
+        customer.setVerifiedEmail(safeBoolean(c, "verified_email"));
+
+        JsonNode address = c.get("default_address");
+        if (address != null && !address.isNull()) {
+            customer.setCity(safeText(address, "city"));
+            customer.setCountry(safeText(address, "country"));
+            customer.setState(safeText(address, "province"));
+        } else {
+            customer.setCity("");
+            customer.setCountry("");
+            customer.setState("");
+        }
+
+        customerRepo.save(customer);
+    }
+
+    // -----------------------------------------
+    // SAFE FIELD HELPERS
+    // -----------------------------------------
     private String safeText(JsonNode node, String field) {
         JsonNode v = node.get(field);
         return (v != null && !v.isNull()) ? v.asText() : "";

@@ -2,6 +2,7 @@ package com.XenoTest.Xeno.config;
 
 import com.XenoTest.Xeno.filter.JwtFilter;
 import com.XenoTest.Xeno.tenant.TenantFilter;
+import com.XenoTest.Xeno.repository.TenantRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -15,11 +16,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class SecurityConfig {
 
+    private final TenantRepository tenantRepository;
+
+    public SecurityConfig(TenantRepository tenantRepository) {
+        this.tenantRepository = tenantRepository;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
+        http.csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
@@ -27,25 +33,25 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/**",
-                                "/dashboard.html",
-                                "/favicon.ico",
-                                "/error",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/static/**"
+                                "/static/**",
+                                "/",
+
+                                // Shopify Webhooks
+                                "/webhook/shopify/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
-
                 .cors(Customizer.withDefaults());
 
-        // Filters
         http.addFilterBefore(new JwtFilter(), UsernamePasswordAuthenticationFilter.class);
-        http.addFilterAfter(new TenantFilter(), JwtFilter.class);
+        http.addFilterAfter(new TenantFilter(tenantRepository), JwtFilter.class);
 
         return http.build();
     }
+
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {

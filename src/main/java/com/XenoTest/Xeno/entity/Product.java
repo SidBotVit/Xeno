@@ -1,12 +1,9 @@
 package com.XenoTest.Xeno.entity;
 
 import jakarta.persistence.*;
-
-
 import java.time.LocalDateTime;
 
 @Entity
-
 @Table(name = "products")
 public class Product {
 
@@ -25,14 +22,27 @@ public class Product {
     private String handle;
     private String imageUrl;
 
-    private Double price;
+    private Double price;  // <-- Price exists but no getter/setter earlier
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private Long tenantId; // <-- important for multitenant
+    private Long tenantId;
+    private String sku;
+
+
+    // ------------------- GETTERS & SETTERS -------------------
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public String getSku() {
+        return sku;
+    }
+
+    public void setSku(String sku) {
+        this.sku = sku;
+    }
 
     public Long getTenantId() { return tenantId; }
     public void setTenantId(Long tenantId) { this.tenantId = tenantId; }
@@ -60,5 +70,14 @@ public class Product {
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+
+    // ⭐️ ADD THESE ⭐️
+    public Double getPrice() {
+        return price;
+    }
+
+    public void setPrice(Double price) {
+        this.price = price;
+    }
 
 }

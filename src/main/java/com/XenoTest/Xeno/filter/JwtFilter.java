@@ -19,8 +19,17 @@ public class JwtFilter implements Filter {
             throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
+        String uri = req.getRequestURI();
+
+        // ✅ 1. ALLOW SHOPIFY WEBHOOKS (no JWT required)
+        if (uri.startsWith("/webhook/shopify")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = req.getHeader("Authorization");
 
+        // ✅ 2. Normal JWT handling
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
@@ -28,12 +37,12 @@ public class JwtFilter implements Filter {
                 Claims claims = JwtUtil.validateToken(token);
 
                 Long tenantId = claims.get("tenantId", Long.class);
-                String email = claims.getSubject(); // email stored in JWT
+                String email = claims.getSubject();
 
-                // store tenant for DB layer
+                // Set tenant for DB queries
                 TenantContext.setTenantId(tenantId);
 
-                // 🔥 mark user as authenticated
+                // Mark user authenticated
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(email, null, List.of());
 

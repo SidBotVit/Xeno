@@ -1,13 +1,19 @@
 package com.XenoTest.Xeno.tenant;
 
+import com.XenoTest.Xeno.entity.Tenant;
+import com.XenoTest.Xeno.repository.TenantRepository;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.stereotype.Component;
 import java.io.IOException;
 
-@Component
 public class TenantFilter implements Filter {
+
+    private final TenantRepository tenantRepository;
+
+    public TenantFilter(TenantRepository tenantRepository) {
+        this.tenantRepository = tenantRepository;
+    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -18,40 +24,54 @@ public class TenantFilter implements Filter {
 
         System.out.println("🔥 TenantFilter Hit → URI = " + uri);
 
-        // ALLOW AUTH
+        // 1️⃣ Webhooks always allowed (NO tenant header)
+        if (uri.startsWith("/webhook/shopify")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 2️⃣ Static resources allowed
+        if (uri.endsWith(".html") || uri.endsWith(".js") || uri.endsWith(".css")
+                || uri.startsWith("/css") || uri.startsWith("/js")
+                || uri.startsWith("/images") || uri.equals("/")) {
+            chain.doFilter(request, response);
+            return;
+        }
+
+        // 3️⃣ Auth routes allowed
         if (uri.startsWith("/auth")) {
-            System.out.println("✔ ALLOW /auth → " + uri);
             chain.doFilter(request, response);
             return;
         }
 
-        // ALLOW STATIC FILES
-        if (uri.endsWith(".html") ||
-                uri.endsWith(".css") ||
-                uri.endsWith(".js") ||
-                uri.endsWith(".png") ||
-                uri.endsWith(".jpg") ||
-                uri.startsWith("/static")) {
+        // 4️⃣ Everything else requires tenant
+        String tenantHeader = req.getHeader("X-Tenant-ID");
 
-            System.out.println("✔ ALLOW STATIC → " + uri);
-            chain.doFilter(request, response);
-            return;
-        }
-
-        // Protected APIs → NEED TENANT
-        Long tenantId = TenantContext.getTenantId();
-        System.out.println("🔎 Tenant inside filter = " + tenantId);
-        System.out.println("🏷 TenantFilter tenant=" + TenantContext.getTenantId());
-
-
-        if (tenantId == null) {
+        if (tenantHeader == null) {
             System.out.println("❌ BLOCKED — Missing tenant/token");
-            ((HttpServletResponse) response).sendError(401, "Missing JWT / Tenant");
+            ((HttpServletResponse) response).sendError(403, "Missing tenant header");
             return;
         }
+
+        Long tenantId;
+        try {
+            tenantId = Long.parseLong(tenantHeader);
+        } catch (Exception e) {
+            ((HttpServletResponse) response).sendError(400, "Invalid tenant header");
+            return;
+        }
+
+        Tenant tenant = tenantRepository.findById(tenantId).orElse(null);
+        if (tenant == null) {
+            ((HttpServletResponse) response).sendError(404, "Tenant not found");
+            return;
+        }
+
+        // Store tenant in context
+        System.out.println("✔ Tenant OK → " + tenantId);
+        TenantContext.setTenantId(tenantId);
 
         try {
-            System.out.println("✔ Tenant OK → " + tenantId);
             chain.doFilter(request, response);
         } finally {
             TenantContext.clear();
