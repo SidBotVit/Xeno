@@ -1,9 +1,14 @@
 package com.XenoTest.Xeno.config;
 
+import com.XenoTest.Xeno.filter.JwtFilter;
+import com.XenoTest.Xeno.tenant.TenantFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -15,8 +20,21 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-                .cors(cors -> {});  // Enable CORS
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .logout(logout -> logout.disable())
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/auth/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .cors(Customizer.withDefaults());
+
+        // JWT filter first
+        http.addFilterBefore(new JwtFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        // Tenant filter AFTER JWT filter
+        http.addFilterAfter(new TenantFilter(), JwtFilter.class);
 
         return http.build();
     }
@@ -27,10 +45,15 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedHeaders("X-Tenant-ID", "*")   // allow tenant header
+                        .allowedHeaders("*")
                         .allowedMethods("*")
                         .allowedOrigins("*");
             }
         };
+    }
+
+    @Bean
+    public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
+        return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
 }

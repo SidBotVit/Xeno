@@ -1,38 +1,31 @@
 package com.XenoTest.Xeno.tenant;
 
-import com.XenoTest.Xeno.entity.Tenant;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.stereotype.Component;
-
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component
 public class TenantFilter implements Filter {
 
-    private final TenantResolverService tenantResolver;
-
-    public TenantFilter(TenantResolverService tenantResolver) {
-        this.tenantResolver = tenantResolver;
-    }
-
     @Override
-    public void doFilter(
-            ServletRequest request,
-            ServletResponse response,
-            FilterChain chain
-    ) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
 
-        HttpServletRequest http = (HttpServletRequest) request;
+        HttpServletRequest req = (HttpServletRequest) request;
 
-        String shopDomain = http.getHeader("X-Shop-Domain");
+        String uri = req.getRequestURI();
 
-        if (shopDomain != null) {
-            Tenant tenant = tenantResolver.resolveTenant(shopDomain);
+        // Allow login + signup
+        if (uri.startsWith("/auth")) {
+            chain.doFilter(request, response);
+            return;
+        }
 
-            if (tenant != null) {
-                TenantContext.setTenantId(tenant.getId());
-            }
+        Long tenantId = TenantContext.getTenantId();
+
+        if (tenantId == null) {
+            ((HttpServletResponse) response).sendError(401, "Missing JWT / Tenant");
+            return;
         }
 
         try {
