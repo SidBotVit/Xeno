@@ -6,12 +6,17 @@ import io.jsonwebtoken.Claims;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.io.IOException;
+import java.util.List;
 
 public class JwtFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws java.io.IOException, ServletException {
+            throws IOException, ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
         String authHeader = req.getHeader("Authorization");
@@ -21,11 +26,20 @@ public class JwtFilter implements Filter {
 
             try {
                 Claims claims = JwtUtil.validateToken(token);
-                Long tenantId = claims.get("tenantId", Long.class);
 
-                // set tenant
+                Long tenantId = claims.get("tenantId", Long.class);
+                String email = claims.getSubject(); // email stored in JWT
+
+                // store tenant for DB layer
                 TenantContext.setTenantId(tenantId);
 
+                // 🔥 mark user as authenticated
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(email, null, List.of());
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                System.out.println("🔑 JWT Filter tenant=" + tenantId);
 
             } catch (Exception e) {
                 ((HttpServletResponse) response).sendError(401, "Invalid token");

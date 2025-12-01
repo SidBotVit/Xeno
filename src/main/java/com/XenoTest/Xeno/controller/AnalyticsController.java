@@ -1,6 +1,7 @@
 package com.XenoTest.Xeno.controller;
 
 import com.XenoTest.Xeno.service.AnalyticsService;
+import com.XenoTest.Xeno.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,29 +18,32 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    // 👉 Used by /analytics/summary
     @GetMapping("/summary")
-    public ResponseEntity<Map<String, Object>> getSummary(
-            @RequestHeader("X-Tenant-ID") Long tenantId
-    ) {
+    public ResponseEntity<Map<String, Object>> getSummary() {
+
+        Long tenantId = TenantContext.getTenantId();
+        System.out.println("📊 Summary Tenant = " + tenantId);
+
         return ResponseEntity.ok(analyticsService.getSummary(tenantId));
     }
 
-    // 👉 Used by /analytics/orders?start=YYYY-MM-DD&end=YYYY-MM-DD
     @GetMapping("/orders")
     public ResponseEntity<List<Map<String, Object>>> getOrdersByDate(
-            @RequestHeader("X-Tenant-ID") Long tenantId,
             @RequestParam String start,
             @RequestParam String end
     ) {
+        Long tenantId = TenantContext.getTenantId();
+        System.out.println("📈 Orders Tenant = " + tenantId);
+
         return ResponseEntity.ok(analyticsService.getOrdersByDate(tenantId, start, end));
     }
 
-    // 👉 Used by /analytics/top-customers
     @GetMapping("/top-customers")
-    public ResponseEntity<List<Map<String, Object>>> getTopCustomers(
-            @RequestHeader("X-Tenant-ID") Long tenantId
-    ) {
+    public ResponseEntity<List<Map<String, Object>>> getTopCustomers() {
+
+        Long tenantId = TenantContext.getTenantId();
+        System.out.println("🏆 Top Customers Tenant = " + tenantId);
+
         return ResponseEntity.ok(analyticsService.getTopCustomers(tenantId));
     }
 }

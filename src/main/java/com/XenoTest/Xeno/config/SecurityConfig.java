@@ -25,15 +25,23 @@ public class SecurityConfig {
                 .logout(logout -> logout.disable())
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/dashboard.html",
+                                "/favicon.ico",
+                                "/error",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/static/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
+
                 .cors(Customizer.withDefaults());
 
-        // JWT filter first
+        // Filters
         http.addFilterBefore(new JwtFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        // Tenant filter AFTER JWT filter
         http.addFilterAfter(new TenantFilter(), JwtFilter.class);
 
         return http.build();
