@@ -5,10 +5,15 @@ import com.XenoTest.Xeno.entity.Tenant;
 import com.XenoTest.Xeno.repository.OrderRepository;
 import com.XenoTest.Xeno.repository.TenantRepository;
 import com.XenoTest.Xeno.shopify.ShopifyClient;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class OrderSyncService {
@@ -21,11 +26,40 @@ public class OrderSyncService {
     public OrderSyncService(ShopifyClient shopifyClient,
                             OrderRepository orderRepo,
                             TenantRepository tenantRepo) {
-
         this.shopifyClient = shopifyClient;
         this.orderRepo = orderRepo;
         this.tenantRepo = tenantRepo;
     }
+
+    // ---------------- SAFE GETTERS ---------------- //
+
+    private String safeText(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asText() : "";
+    }
+
+    private Double safeDouble(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asDouble() : 0.0;
+    }
+
+    private Long safeLong(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asLong() : 0L;
+    }
+
+    private LocalDateTime safeDate(JsonNode node, String field) {
+        try {
+            JsonNode v = node.get(field);
+            if (v == null || v.isNull()) return null;
+            String raw = v.asText().replace("Z", "");
+            return LocalDateTime.parse(raw, DateTimeFormatter.ISO_DATE_TIME);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // ---------------- MAIN SYNC METHOD ---------------- //
 
     @Transactional
     public String syncOrders(Long tenantId) throws Exception {
@@ -55,52 +89,39 @@ public class OrderSyncService {
             order.setTenantId(tenantId);
             order.setShopifyOrderId(shopifyOrderId);
 
+            // SAFE FIELDS
             order.setName(safeText(o, "name"));
             order.setEmail(safeText(o, "email"));
             order.setFinancialStatus(safeText(o, "financial_status"));
             order.setTotalPrice(safeDouble(o, "total_price"));
-            order.setCurrency(safeText(o, "currency"));
-            order.setOrderStatusUrl(safeText(o, "order_status_url"));
 
-            // Customer data inside order
-            JsonNode customerNode = o.get("customer");
-            if (customerNode != null && !customerNode.isNull()) {
-                order.setCustomerFirstName(safeText(customerNode, "first_name"));
-                order.setCustomerLastName(safeText(customerNode, "last_name"));
-                // if you have a customerId column, you can also set it here
-                // order.setCustomerId(safeLong(customerNode, "id"));
+            // DATES
+            order.setCreatedAt(safeDate(o, "created_at"));
+            order.setUpdatedAt(safeDate(o, "updated_at"));
+
+            // CUSTOMER INFO (if exists)
+            JsonNode customer = o.get("customer");
+            if (customer != null && !customer.isNull()) {
+                Long cid = safeLong(customer, "id");   // Shopify customer ID
+
+                order.setCustomerId(cid);
+
+                order.setCustomerFirstName(safeText(customer, "first_name"));
+                order.setCustomerLastName(safeText(customer, "last_name"));
             }
 
-            // Shipping / billing address
-            JsonNode shippingAddress = o.get("shipping_address");
-            if (shippingAddress != null && !shippingAddress.isNull()) {
-                order.setAddressCity(safeText(shippingAddress, "city"));
-                order.setAddressCountry(safeText(shippingAddress, "country"));
-            } else {
-                order.setAddressCity("");
-                order.setAddressCountry("");
+
+
+            // ADDRESS INFO (if exists)
+            JsonNode addr = o.get("billing_address");
+            if (addr != null && !addr.isNull()) {
+                order.setAddressCity(safeText(addr, "city"));
+                order.setAddressCountry(safeText(addr, "country"));
             }
 
             orderRepo.save(order);
         }
 
         return "Orders synced successfully for tenant = " + tenantId;
-    }
-
-    // -------- SAFE FIELD HELPERS --------
-
-    private String safeText(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        return (v != null && !v.isNull()) ? v.asText() : "";
-    }
-
-    private double safeDouble(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        return (v != null && !v.isNull()) ? v.asDouble() : 0.0;
-    }
-
-    private long safeLong(JsonNode node, String field) {
-        JsonNode v = node.get(field);
-        return (v != null && !v.isNull()) ? v.asLong() : 0L;
     }
 }

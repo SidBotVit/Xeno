@@ -21,6 +21,15 @@ public class Order {
     // Multi-tenant
     @Column(nullable = false)
     private Long tenantId;
+    @Column(name = "customer_id")
+    private Long customerId;
+
+    @Column(name = "customer_first_name")
+    private String customerFirstName;
+
+    @Column(name = "customer_last_name")
+    private String customerLastName;
+
 
     // Shopify order ID
     @Column(nullable = false)
@@ -38,8 +47,6 @@ public class Order {
     private LocalDateTime updatedAt;
 
     // Customer info (optional)
-    private String customerFirstName;
-    private String customerLastName;
 
     // Address (optional)
     private String addressCity;
