@@ -11,18 +11,20 @@ public class TenantInterceptor implements HandlerInterceptor {
                              HttpServletResponse response,
                              Object handler) throws Exception {
 
-        String header = request.getHeader("X-Tenant-ID");
+        String tenantHeader = request.getHeader("X-Tenant-ID");
+        System.out.println("🔎 Received Tenant Header = " + tenantHeader);
 
-        if (header == null) {
+        if (tenantHeader == null) {
             response.setStatus(400);
             response.getWriter().write("Missing tenant header 'X-Tenant-ID'");
             return false;
         }
 
         try {
-            Long tenantId = Long.parseLong(header);
+            Long tenantId = Long.parseLong(tenantHeader);
             TenantContext.setTenantId(tenantId);
             return true;
+
         } catch (Exception e) {
             response.setStatus(400);
             response.getWriter().write("Invalid tenant id in header");

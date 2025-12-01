@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Xeno Dashboard</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 25px;
+        }
+        h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        .cards {
+            display: flex;
+            gap: 20px;
+        }
+        .card {
+            padding: 20px;
+            background: #f4f4f4;
+            border-radius: 12px;
+            min-width: 200px;
+            text-align: center;
+        }
+        .card h3 {
+            margin: 5px 0 10px;
+        }
+        canvas {
+            margin-top: 40px;
+            width: 800px !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>📊 Xeno Insights Dashboard</h2>
+
+<div class="cards">
+    <div class="card"><h3 id="customersCount">0</h3>Customers</div>
+    <div class="card"><h3 id="ordersCount">0</h3>Orders</div>
+    <div class="card"><h3 id="revenueCount">₹0</h3>Revenue</div>
+</div>
+
+<!-- CHARTS -->
+<canvas id="ordersChart"></canvas>
+<canvas id="topCustomersChart"></canvas>
+
+<script>
+
+    // --------------------------------
+    // CONSTANT TENANT ID
+    // --------------------------------
+    const tenantId = 1;
+
+    // --------------------------------
+    // WRAPPER FOR FETCH WITH TENANT HEADER
+    // --------------------------------
+    async function tenantFetch(url) {
+        return fetch(url, {
+            method: "GET",
+            headers: {
+                "X-Tenant-ID": tenantId,
+                "Accept": "application/json"
+            }
+        });
+    }
+
+    // --------------------------------
+    // LOAD SUMMARY
+    // --------------------------------
+    tenantFetch("http://localhost:8080/analytics/summary")
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("customersCount").innerText = data.totalCustomers;
+            document.getElementById("ordersCount").innerText = data.totalOrders;
+            document.getElementById("revenueCount").innerText = "₹" + (data.totalRevenue ?? 0);
+        })
+        .catch(err => console.error("❌ Summary Error:", err));
+
+    // --------------------------------
+    // ORDERS BY DATE CHART
+    // --------------------------------
+    tenantFetch("http://localhost:8080/analytics/orders?start=2024-01-01&end=2025-12-31")
+        .then(res => res.json())
+        .then(data => {
+
+            const labels = data.map(d => d.date);
+            const orderCount = data.map(d => d.orders);
+            const revenue = data.map(d => d.revenue);
+
+            new Chart(document.getElementById("ordersChart"), {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Orders",
+                            data: orderCount,
+                            borderColor: "blue",
+                            fill: false
+                        },
+                        {
+                            label: "Revenue",
+                            data: revenue,
+                            borderColor: "green",
+                            fill: false
+                        }
+                    ]
+                }
+            });
+        })
+        .catch(err => console.error("❌ Orders Chart Error:", err));
+
+    // --------------------------------
+    // TOP CUSTOMERS CHART
+    // --------------------------------
+    tenantFetch("http://localhost:8080/analytics/top-customers")
+        .then(res => res.json())
+        .then(data => {
+
+            const labels = data.map(d => d.name ?? "Unknown");
+            const totalSpent = data.map(d => d.totalSpent);
+
+            new Chart(document.getElementById("topCustomersChart"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Total Spent",
+                        data: totalSpent,
+                        backgroundColor: "purple"
+                    }]
+                }
+            });
+        })
+        .catch(err => console.error("❌ Top Customers Error:", err));
+
+</script>
+
+</body>
+</html>

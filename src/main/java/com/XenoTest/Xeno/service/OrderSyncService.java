@@ -5,13 +5,10 @@ import com.XenoTest.Xeno.entity.Tenant;
 import com.XenoTest.Xeno.repository.OrderRepository;
 import com.XenoTest.Xeno.repository.TenantRepository;
 import com.XenoTest.Xeno.shopify.ShopifyClient;
-import com.XenoTest.Xeno.tenant.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 public class OrderSyncService {
@@ -24,16 +21,14 @@ public class OrderSyncService {
     public OrderSyncService(ShopifyClient shopifyClient,
                             OrderRepository orderRepo,
                             TenantRepository tenantRepo) {
+
         this.shopifyClient = shopifyClient;
         this.orderRepo = orderRepo;
         this.tenantRepo = tenantRepo;
     }
 
     @Transactional
-    public String syncOrders() throws Exception {
-
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null) return "Missing tenant header 'X-Tenant-ID'";
+    public String syncOrders(Long tenantId) throws Exception {
 
         Tenant tenant = tenantRepo.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found: " + tenantId));
@@ -45,46 +40,67 @@ public class OrderSyncService {
         JsonNode root = mapper.readTree(response);
         JsonNode ordersNode = root.get("orders");
 
-        if (ordersNode == null || !ordersNode.isArray())
+        if (ordersNode == null || !ordersNode.isArray()) {
             return "Invalid order response from Shopify";
+        }
 
         for (JsonNode o : ordersNode) {
 
-            Long shopifyOrderId = o.get("id").asLong();
+            Long shopifyOrderId = safeLong(o, "id");
 
-            Order order =
-                    orderRepo.findByShopifyOrderIdAndTenantId(shopifyOrderId, tenantId)
-                            .orElse(new Order());
+            Order order = orderRepo
+                    .findByShopifyOrderIdAndTenantId(shopifyOrderId, tenantId)
+                    .orElse(new Order());
 
             order.setTenantId(tenantId);
             order.setShopifyOrderId(shopifyOrderId);
 
-            order.setName(o.get("name").asText(""));
-            order.setEmail(o.get("email").asText(""));
+            order.setName(safeText(o, "name"));
+            order.setEmail(safeText(o, "email"));
+            order.setFinancialStatus(safeText(o, "financial_status"));
+            order.setTotalPrice(safeDouble(o, "total_price"));
+            order.setCurrency(safeText(o, "currency"));
+            order.setOrderStatusUrl(safeText(o, "order_status_url"));
 
-            order.setFinancialStatus(o.get("financial_status").asText(""));
-            order.setFulfillmentStatus(o.get("fulfillment_status").asText(""));
-            order.setCurrency(o.get("currency").asText(""));
-
-            order.setTotalPrice(o.get("total_price").asDouble());
-
-            order.setCreatedAt(o.get("created_at") != null ?
-                    LocalDateTime.parse(o.get("created_at").asText().replace("Z", "")) : null);
-
-            order.setUpdatedAt(o.get("updated_at") != null ?
-                    LocalDateTime.parse(o.get("updated_at").asText().replace("Z", "")) : null);
-
-            JsonNode cust = o.get("customer");
-            if (cust != null && !cust.isNull()) {
-                order.setCustomerFirstName(cust.get("first_name").asText(""));
-                order.setCustomerLastName(cust.get("last_name").asText(""));
+            // Customer data inside order
+            JsonNode customerNode = o.get("customer");
+            if (customerNode != null && !customerNode.isNull()) {
+                order.setCustomerFirstName(safeText(customerNode, "first_name"));
+                order.setCustomerLastName(safeText(customerNode, "last_name"));
+                // if you have a customerId column, you can also set it here
+                // order.setCustomerId(safeLong(customerNode, "id"));
             }
 
-            order.setOrderStatusUrl(o.get("order_status_url").asText(""));
+            // Shipping / billing address
+            JsonNode shippingAddress = o.get("shipping_address");
+            if (shippingAddress != null && !shippingAddress.isNull()) {
+                order.setAddressCity(safeText(shippingAddress, "city"));
+                order.setAddressCountry(safeText(shippingAddress, "country"));
+            } else {
+                order.setAddressCity("");
+                order.setAddressCountry("");
+            }
 
             orderRepo.save(order);
         }
 
         return "Orders synced successfully for tenant = " + tenantId;
+    }
+
+    // -------- SAFE FIELD HELPERS --------
+
+    private String safeText(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asText() : "";
+    }
+
+    private double safeDouble(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asDouble() : 0.0;
+    }
+
+    private long safeLong(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asLong() : 0L;
     }
 }

@@ -30,22 +30,17 @@ public class ProductSyncService {
     @Transactional
     public String syncProducts(Long tenantId) throws Exception {
 
-        if (tenantId == null) {
-            throw new IllegalArgumentException("Tenant ID is required");
-        }
-
         Tenant tenant = tenantRepo.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found: " + tenantId));
 
-        String shopDomain = tenant.getShopDomain();
-        String token = tenant.getAccessToken();
-
-        String response = shopifyClient.getProducts(shopDomain, token).getBody();
+        String response = shopifyClient
+                .getProducts(tenant.getShopDomain(), tenant.getAccessToken())
+                .getBody();
 
         JsonNode root = mapper.readTree(response);
         JsonNode productsNode = root.get("products");
 
-        if (productsNode == null || !productsNode.isArray()) {
+        if (!productsNode.isArray()) {
             return "Invalid product response from Shopify";
         }
 
@@ -53,10 +48,9 @@ public class ProductSyncService {
 
             Long shopifyId = p.get("id").asLong();
 
-            // Now matches your repository type
-            Product product =
-                    productRepo.findByShopifyProductIdAndTenantId(shopifyId, tenantId)
-                            .orElse(new Product());
+            Product product = productRepo
+                    .findByShopifyProductIdAndTenantId(shopifyId, tenantId)
+                    .orElse(new Product());
 
             product.setTenantId(tenantId);
             product.setShopifyProductId(shopifyId);
@@ -67,11 +61,9 @@ public class ProductSyncService {
             product.setDescription(p.get("body_html").asText(""));
             product.setProductType(p.get("product_type").asText(""));
 
-            product.setImageUrl(
-                    p.get("image") != null && !p.get("image").isNull()
-                            ? p.get("image").get("src").asText("")
-                            : null
-            );
+            if (p.get("image") != null && !p.get("image").isNull()) {
+                product.setImageUrl(p.get("image").get("src").asText());
+            }
 
             productRepo.save(product);
         }

@@ -5,7 +5,6 @@ import com.XenoTest.Xeno.entity.Tenant;
 import com.XenoTest.Xeno.repository.CustomerRepository;
 import com.XenoTest.Xeno.repository.TenantRepository;
 import com.XenoTest.Xeno.shopify.ShopifyClient;
-import com.XenoTest.Xeno.tenant.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
@@ -22,17 +21,14 @@ public class CustomerSyncService {
     public CustomerSyncService(ShopifyClient shopifyClient,
                                CustomerRepository customerRepo,
                                TenantRepository tenantRepo) {
+
         this.shopifyClient = shopifyClient;
         this.customerRepo = customerRepo;
         this.tenantRepo = tenantRepo;
     }
 
     @Transactional
-    public String syncCustomers() throws Exception {
-
-        Long tenantId = TenantContext.getTenantId();
-
-        if (tenantId == null) return "Missing tenant header 'X-Tenant-ID'";
+    public String syncCustomers(Long tenantId) throws Exception {
 
         Tenant tenant = tenantRepo.findById(tenantId)
                 .orElseThrow(() -> new RuntimeException("Tenant not found: " + tenantId));
@@ -50,27 +46,62 @@ public class CustomerSyncService {
 
         for (JsonNode c : customersNode) {
 
-            Long shopifyCustomerId = c.get("id").asLong();
+            Long shopifyCustomerId = safeLong(c, "id");
 
-            Customer customer =
-                    customerRepo.findByShopifyCustomerIdAndTenantId(shopifyCustomerId, tenantId)
-                            .orElse(new Customer());
+            Customer customer = customerRepo
+                    .findByShopifyCustomerIdAndTenantId(shopifyCustomerId, tenantId)
+                    .orElse(new Customer());
 
             customer.setTenantId(tenantId);
             customer.setShopifyCustomerId(shopifyCustomerId);
-            customer.setFirstName(c.get("first_name").asText(""));
-            customer.setLastName(c.get("last_name").asText(""));
-            customer.setEmail(c.get("email").asText(""));
-            customer.setPhone(c.get("phone").asText(""));
-            customer.setState(c.get("state").asText(""));
-            customer.setCountry(c.get("country").asText(""));
-            customer.setCurrency(c.get("currency").asText(""));
-            customer.setCreatedAt(c.get("created_at").asText(""));
-            customer.setUpdatedAt(c.get("updated_at").asText(""));
+
+            customer.setFirstName(safeText(c, "first_name"));
+            customer.setLastName(safeText(c, "last_name"));
+            customer.setEmail(safeText(c, "email"));
+            customer.setPhone(safeText(c, "phone"));
+
+            // verified_email is NOT NULL in DB → must always set
+            customer.setVerifiedEmail(safeBoolean(c, "verified_email"));
+
+            JsonNode defaultAddress = c.get("default_address");
+            if (defaultAddress != null && !defaultAddress.isNull()) {
+                customer.setCity(safeText(defaultAddress, "city"));
+                customer.setCountry(safeText(defaultAddress, "country"));
+                customer.setState(safeText(defaultAddress, "province"));
+            } else {
+                customer.setCity("");
+                customer.setCountry("");
+                customer.setState("");
+            }
 
             customerRepo.save(customer);
         }
 
         return "Customers synced successfully for tenant = " + tenantId;
+    }
+
+    // -------- SAFE FIELD HELPERS --------
+
+    private String safeText(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asText() : "";
+    }
+
+    private double safeDouble(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asDouble() : 0.0;
+    }
+
+    private long safeLong(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return (v != null && !v.isNull()) ? v.asLong() : 0L;
+    }
+
+    private boolean safeBoolean(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        if (v == null || v.isNull()) return false;
+        if (v.isBoolean()) return v.asBoolean();
+        if (v.isTextual()) return Boolean.parseBoolean(v.asText());
+        return false;
     }
 }

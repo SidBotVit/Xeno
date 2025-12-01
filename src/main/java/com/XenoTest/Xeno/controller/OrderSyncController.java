@@ -8,14 +8,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/sync")
 public class OrderSyncController {
 
-    private final OrderSyncService service;
+    private final OrderSyncService orderSyncService;
 
-    public OrderSyncController(OrderSyncService service) {
-        this.service = service;
+    public OrderSyncController(OrderSyncService orderSyncService) {
+        this.orderSyncService = orderSyncService;
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<String> syncOrders() throws Exception {
-        return ResponseEntity.ok(service.syncOrders());
+    public ResponseEntity<String> syncOrders(@RequestHeader("X-Tenant-ID") Long tenantId) throws Exception {
+        return ResponseEntity.ok(orderSyncService.syncOrders(tenantId));
     }
+
 }
