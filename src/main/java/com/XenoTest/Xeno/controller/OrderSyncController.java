@@ -1,24 +1,21 @@
 package com.XenoTest.Xeno.controller;
 
 import com.XenoTest.Xeno.service.OrderSyncService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/sync")
 public class OrderSyncController {
 
-    private final OrderSyncService orderSyncService;
+    private final OrderSyncService service;
 
-    public OrderSyncController(OrderSyncService orderSyncService) {
-        this.orderSyncService = orderSyncService;
+    public OrderSyncController(OrderSyncService service) {
+        this.service = service;
     }
 
-    @GetMapping("/orders")
-    public String syncOrders(
-            @RequestParam Long tenantId,
-            @RequestParam String shopDomain,
-            @RequestParam String token
-    ) {
-        return orderSyncService.syncOrders(tenantId, shopDomain, token);
+    @PostMapping("/orders")
+    public ResponseEntity<String> syncOrders() throws Exception {
+        return ResponseEntity.ok(service.syncOrders());
     }
 }

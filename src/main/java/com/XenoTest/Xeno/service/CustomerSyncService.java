@@ -1,75 +1,76 @@
 package com.XenoTest.Xeno.service;
 
 import com.XenoTest.Xeno.entity.Customer;
+import com.XenoTest.Xeno.entity.Tenant;
 import com.XenoTest.Xeno.repository.CustomerRepository;
+import com.XenoTest.Xeno.repository.TenantRepository;
 import com.XenoTest.Xeno.shopify.ShopifyClient;
+import com.XenoTest.Xeno.tenant.TenantContext;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CustomerSyncService {
 
     private final ShopifyClient shopifyClient;
-    private final CustomerRepository customerRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final CustomerRepository customerRepo;
+    private final TenantRepository tenantRepo;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public CustomerSyncService(ShopifyClient shopifyClient, CustomerRepository customerRepository) {
+    public CustomerSyncService(ShopifyClient shopifyClient,
+                               CustomerRepository customerRepo,
+                               TenantRepository tenantRepo) {
         this.shopifyClient = shopifyClient;
-        this.customerRepository = customerRepository;
+        this.customerRepo = customerRepo;
+        this.tenantRepo = tenantRepo;
     }
 
-    public String syncCustomers(Long tenantId, String shopDomain, String token) {
-        try {
-            ResponseEntity<String> response = shopifyClient.getCustomers(shopDomain, token);
+    @Transactional
+    public String syncCustomers() throws Exception {
 
-            JsonNode root = objectMapper.readTree(response.getBody());
-            JsonNode customers = root.get("customers");
+        Long tenantId = TenantContext.getTenantId();
 
-            for (JsonNode c : customers) {
+        if (tenantId == null) return "Missing tenant header 'X-Tenant-ID'";
 
-                Long shopifyId = c.get("id").asLong();
-                String firstName = c.get("first_name").asText("");
-                String lastName = c.get("last_name").asText("");
-                String email = c.get("email").asText("");
-                boolean verified = c.get("verified_email").asBoolean(false);
-                String phone = c.has("phone") && !c.get("phone").isNull()
-                        ? c.get("phone").asText()
-                        : null;
+        Tenant tenant = tenantRepo.findById(tenantId)
+                .orElseThrow(() -> new RuntimeException("Tenant not found: " + tenantId));
 
-                Long ordersCount = c.has("orders_count") ? c.get("orders_count").asLong() : 0;
-                Double totalSpent = c.has("total_spent") ? c.get("total_spent").asDouble() : 0.0;
+        String response = shopifyClient
+                .getCustomers(tenant.getShopDomain(), tenant.getAccessToken())
+                .getBody();
 
-                Customer existing = customerRepository
-                        .findByShopifyCustomerIdAndTenantId(shopifyId, tenantId);
+        JsonNode root = mapper.readTree(response);
+        JsonNode customersNode = root.get("customers");
 
-                Customer customer = existing != null ? existing : new Customer();
-
-                customer.setShopifyCustomerId(shopifyId);
-                customer.setFirstName(firstName);
-                customer.setLastName(lastName);
-                customer.setEmail(email);
-                customer.setVerifiedEmail(verified);
-                customer.setPhone(phone);
-                customer.setOrdersCount(ordersCount);
-                customer.setTotalSpent(totalSpent);
-
-                customer.setTenantId(tenantId);
-
-                customer.setCreatedAt(LocalDateTime.now());
-                customer.setUpdatedAt(LocalDateTime.now());
-
-                customerRepository.save(customer);
-            }
-
-            return "Customers synced successfully for tenantId = " + tenantId;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "Failed to sync customers: " + e.getMessage();
+        if (customersNode == null || !customersNode.isArray()) {
+            return "Invalid customer response from Shopify";
         }
+
+        for (JsonNode c : customersNode) {
+
+            Long shopifyCustomerId = c.get("id").asLong();
+
+            Customer customer =
+                    customerRepo.findByShopifyCustomerIdAndTenantId(shopifyCustomerId, tenantId)
+                            .orElse(new Customer());
+
+            customer.setTenantId(tenantId);
+            customer.setShopifyCustomerId(shopifyCustomerId);
+            customer.setFirstName(c.get("first_name").asText(""));
+            customer.setLastName(c.get("last_name").asText(""));
+            customer.setEmail(c.get("email").asText(""));
+            customer.setPhone(c.get("phone").asText(""));
+            customer.setState(c.get("state").asText(""));
+            customer.setCountry(c.get("country").asText(""));
+            customer.setCurrency(c.get("currency").asText(""));
+            customer.setCreatedAt(c.get("created_at").asText(""));
+            customer.setUpdatedAt(c.get("updated_at").asText(""));
+
+            customerRepo.save(customer);
+        }
+
+        return "Customers synced successfully for tenant = " + tenantId;
     }
 }

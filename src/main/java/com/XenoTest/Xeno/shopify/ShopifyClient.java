@@ -47,6 +47,7 @@ public class ShopifyClient {
     // ------------------------
     // GET CUSTOMERS
     // ------------------------
+
     public ResponseEntity<String> getCustomers(String shopDomain, String token) {
 
         String url = "https://" + shopDomain + "/admin/api/" + API_VERSION + "/customers.json";
@@ -55,6 +56,9 @@ public class ShopifyClient {
         headers.set("X-Shopify-Access-Token", token);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        return restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
     }
+
 }

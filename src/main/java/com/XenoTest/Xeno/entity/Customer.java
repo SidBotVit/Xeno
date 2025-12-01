@@ -4,11 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
-@Entity
 @Getter
 @Setter
+@Entity
 @Table(name = "customers")
 public class Customer {
 
@@ -16,21 +14,20 @@ public class Customer {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long tenantId;
+
     private Long shopifyCustomerId;
 
     private String firstName;
     private String lastName;
     private String email;
-
-    private boolean verifiedEmail;
-
     private String phone;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private String state;
+    private String country;
 
-    private Long ordersCount;
-    private Double totalSpent;
+    private String currency;
 
-    private Long tenantId;  // For multi-tenant isolation
+    private String createdAt;
+    private String updatedAt;
 }

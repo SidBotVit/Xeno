@@ -1,23 +1,38 @@
 package com.XenoTest.Xeno.controller;
 
 import com.XenoTest.Xeno.entity.Product;
-import com.XenoTest.Xeno.repository.ProductRepository;
+import com.XenoTest.Xeno.service.ProductService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
-    private final ProductRepository productRepository;
+    private final ProductService productService;
 
-    public ProductController(ProductRepository productRepository) {
-        this.productRepository = productRepository;
+    public ProductController(ProductService productService) {
+        this.productService = productService;
     }
 
+    // Get products without pagination (raw list)
     @GetMapping("/db")
-    public List<Product> getProductsFromDb(@RequestParam Long tenantId) {
-        return productRepository.findByTenantId(tenantId);
+    public ResponseEntity<?> getProductsFromDb(
+            @RequestHeader("X-Tenant-ID") Long tenantId) {
+
+        return ResponseEntity.ok(productService.getProductsByTenant(tenantId));
+    }
+
+    // ⭐ Pagination + Search
+    @GetMapping
+    public ResponseEntity<?> listProducts(
+            @RequestHeader("X-Tenant-ID") Long tenantId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search) {
+
+        return ResponseEntity.ok(
+                productService.getProducts(tenantId, page, size, search)
+        );
     }
 }
