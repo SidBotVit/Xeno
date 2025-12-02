@@ -22,8 +22,6 @@ public class AnalyticsController {
     public ResponseEntity<Map<String, Object>> getSummary() {
 
         Long tenantId = TenantContext.getTenantId();
-        System.out.println("📊 Summary Tenant = " + tenantId);
-
         return ResponseEntity.ok(analyticsService.getSummary(tenantId));
     }
 
@@ -33,8 +31,6 @@ public class AnalyticsController {
             @RequestParam String end
     ) {
         Long tenantId = TenantContext.getTenantId();
-        System.out.println("📈 Orders Tenant = " + tenantId);
-
         return ResponseEntity.ok(analyticsService.getOrdersByDate(tenantId, start, end));
     }
 
@@ -42,8 +38,28 @@ public class AnalyticsController {
     public ResponseEntity<List<Map<String, Object>>> getTopCustomers() {
 
         Long tenantId = TenantContext.getTenantId();
-        System.out.println("🏆 Top Customers Tenant = " + tenantId);
-
         return ResponseEntity.ok(analyticsService.getTopCustomers(tenantId));
+    }
+
+    // -------------------- NEW --------------------
+    @GetMapping("/revenue-by-country")
+    public ResponseEntity<List<Map<String, Object>>> getRevenueByCountry() {
+
+        Long tenantId = TenantContext.getTenantId();
+        return ResponseEntity.ok(analyticsService.getRevenueByCountry(tenantId));
+    }
+
+    @GetMapping("/customers-by-country")
+    public ResponseEntity<List<Map<String, Object>>> getCustomersByCountry() {
+
+        Long tenantId = TenantContext.getTenantId();
+        return ResponseEntity.ok(analyticsService.getCustomersByCountry(tenantId));
+    }
+
+    @GetMapping("/new-vs-returning")
+    public ResponseEntity<List<Map<String, Object>>> getNewVsReturning() {
+
+        Long tenantId = TenantContext.getTenantId();
+        return ResponseEntity.ok(analyticsService.getNewVsReturning(tenantId));
     }
 }

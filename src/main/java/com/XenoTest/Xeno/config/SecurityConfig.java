@@ -33,12 +33,16 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/auth/**",
+                                "/",
+                                "/index.html",
+                                "/assets/**",
+                                "/static/**",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/static/**",
-                                "/",
-
+                                "/favicon.ico",
+                                "/manifest.json",
+                                "/vite.svg",
                                 // Shopify Webhooks
                                 "/webhook/shopify/**"
                         ).permitAll()
