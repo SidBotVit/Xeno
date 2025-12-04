@@ -208,13 +208,11 @@ VITE_API_URL=https://your-railway-backend.up.railway.app
 
 # 📸 Screenshots
 
-(Add your UI screenshots here)
+<img width="1852" height="842" alt="image" src="https://github.com/user-attachments/assets/0eb8d6f9-5b37-4b1c-9687-02e9975191de" />
+
 
 ```
-/screenshots
-   dashboard.png
-   login.png
-   analytics.png
+
 ```
 
 ---
